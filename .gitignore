@@ -1,0 +1,101 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.sqlalchemy_migration
+instance/
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# FastAPI/Uvicorn
+.uvicorn/
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+tmp/
+temp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if using for frontend)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Local development
+local_settings.py
+.venv
+secrets/
+.cache/
+
+# Pycache directories at various levels
+*/__pycache__/
+*/*/__pycache__/
+*/*/*/__pycache__/
+
+# IDE specific
+.vscode/settings.json
+.idea/workspace.xml
