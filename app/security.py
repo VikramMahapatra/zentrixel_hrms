@@ -74,7 +74,7 @@ async def get_current_user_token(
             role_name=payload.get("role_name")
         )
         # Validate required fields
-        if not user_token.user_id or not user_token.email:
+        if not user_token.employee_id or not user_token.email:
             raise HTTPException(status_code=401, detail="Invalid token structure")
         return user_token
     except JWTError:
