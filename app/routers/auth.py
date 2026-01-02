@@ -35,16 +35,45 @@ def register(employee: EmployeeCreate, db: Session = Depends(get_db)):
     db.refresh(db_employee)
     return db_employee
 
-@router.post("/login", response_model=TokenResponse)
+"""@router.post("/login", response_model=TokenResponse)
 def login(email: str, password: str, db: Session = Depends(get_db)):
-    employee = db.query(Employee).filter(Employee.email == email).first()
+     # IMPORTANT: Join with role to get role_name
+    employee = db.query(Employee).join(Employee.role).filter(Employee.email == email).first()
     if not employee or not verify_password(password, employee.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    access_token_expires = timedelta(minutes=30)
+    access_token_expires = timedelta(minutes=80)
     access_token = create_access_token(
         data={"sub": employee.email}, expires_delta=access_token_expires
     )
+    return TokenResponse(access_token=access_token, user=employee)"""
+
+@router.post("/login", response_model=TokenResponse)
+def login(email: str, password: str, db: Session = Depends(get_db)):
+    employee = db.query(Employee).join(Employee.role).filter(Employee.email == email).first()
+    
+    if not employee:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    if not verify_password(password, employee.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Create token data
+    token_data = {
+        "sub": employee.email,
+        "user_id": employee.employee_id,
+        "email": employee.email,
+        "role_id": employee.role_id,
+        "role_name": employee.role.role_name
+    }
+    
+    # Use create_access_token with your 80 minutes expiry
+    access_token_expires = timedelta(minutes=80)
+    access_token = create_access_token(
+        data=token_data, 
+        expires_delta=access_token_expires
+    )
+    
     return TokenResponse(access_token=access_token, user=employee)
 
 @router.get("/me", response_model=EmployeeSchema)

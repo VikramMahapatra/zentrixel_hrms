@@ -5,11 +5,15 @@ from app.database import get_db
 from app.models import Task, Project, Employee
 from app.schemas import Task as TaskSchema, TaskBase
 from app.security import get_current_user
+# Change 1: Import UserToken and token dependencies
+from app.schemas import UserToken
+from app.security import get_current_user_token, is_admin
+
 
 router = APIRouter()
 
-def check_manager_or_admin(current_user: Employee = Depends(get_current_user)):
-    if current_user.role.role_name not in ["admin", "manager"]:
+def check_manager_or_admin(current_user: UserToken = Depends(get_current_user_token)):
+    if current_user.role_name not in ["admin", "manager"]:
         raise HTTPException(status_code=403, detail="Only managers and admins can manage tasks")
     return current_user
 
@@ -19,7 +23,7 @@ def get_project_tasks(project_id: str, db: Session = Depends(get_db), current_us
     return tasks
 
 @router.post("/", response_model=TaskSchema)
-def create_task(task: TaskBase, db: Session = Depends(get_db), manager: Employee = Depends(check_manager_or_admin)):
+def create_task(task: TaskBase, db: Session = Depends(get_db), manager: UserToken = Depends(check_manager_or_admin)):
     project = db.query(Project).filter(Project.project_id == task.project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")

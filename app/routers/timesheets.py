@@ -7,6 +7,9 @@ from app.database import get_db
 from app.models import Timesheet, Employee, Project, Task, ApprovalWorkflow
 from app.schemas import Timesheet as TimesheetSchema, TimesheetCreate, TimesheetApprove, WeeklyTimesheetCreate, WeeklyTimesheetResponse, DailyTimesheetEntry
 from app.security import get_current_user
+# Change 1: Import UserToken and token dependencies
+from app.schemas import UserToken
+from app.security import get_current_user_token, is_admin
 
 router = APIRouter()
 
@@ -121,7 +124,7 @@ def create_weekly_timesheet(
 def get_week_timesheets(
     week_start_date: date,
     db: Session = Depends(get_db), 
-    current_user: Employee = Depends(get_current_user)
+    current_user: UserToken = Depends(get_current_user_token)
 ):
     """Get all timesheets for a specific week"""
     if week_start_date.weekday() != 0:
@@ -135,8 +138,8 @@ def get_week_timesheets(
     )
     
     # Non-admin users can only see their own timesheets
-    if current_user.role.role_name != "admin":
-        query = query.filter(Timesheet.employee_id == current_user.employee_id)
+    if current_user.role_name != "admin":
+        query = query.filter(Timesheet.employee_id == current_user.user_id)
     
     return query.all()
 
@@ -173,19 +176,19 @@ def submit_week_timesheet(
     }
 
 @router.get("/", response_model=List[TimesheetSchema])
-def get_timesheets(db: Session = Depends(get_db), current_user: Employee = Depends(get_current_user)):
-    if current_user.role.role_name == "admin":
+def get_timesheets(db: Session = Depends(get_db), current_user: UserToken = Depends(get_current_user_token)):
+    if current_user.role_name == "admin":
         timesheets = db.query(Timesheet).all()
     else:
-        timesheets = db.query(Timesheet).filter(Timesheet.employee_id == current_user.employee_id).all()
+        timesheets = db.query(Timesheet).filter(Timesheet.employee_id == current_user.user_id).all()
     return timesheets
 
 @router.put("/{timesheet_id}/submit")
-def submit_timesheet(timesheet_id: str, db: Session = Depends(get_db), current_user: Employee = Depends(get_current_user)):
+def submit_timesheet(timesheet_id: str, db: Session = Depends(get_db), current_user: UserToken = Depends(get_current_user_token)):
     timesheet = db.query(Timesheet).filter(Timesheet.timesheet_id == timesheet_id).first()
     if not timesheet:
         raise HTTPException(status_code=404, detail="Timesheet not found")
-    if timesheet.employee_id != current_user.employee_id and current_user.role.role_name != "admin":
+    if timesheet.employee_id != current_user.user_id and current_user.role_name != "admin":
         raise HTTPException(status_code=403, detail="Unauthorized")
     
     timesheet.status = "submitted"
@@ -193,12 +196,12 @@ def submit_timesheet(timesheet_id: str, db: Session = Depends(get_db), current_u
     return timesheet
 
 @router.put("/{timesheet_id}/approve")
-def approve_timesheet(timesheet_id: str, approval: TimesheetApprove, db: Session = Depends(get_db), current_user: Employee = Depends(get_current_user)):
+def approve_timesheet(timesheet_id: str, approval: TimesheetApprove, db: Session = Depends(get_db), current_user: UserToken = Depends(get_current_user_token)):
     timesheet = db.query(Timesheet).filter(Timesheet.timesheet_id == timesheet_id).first()
     if not timesheet:
         raise HTTPException(status_code=404, detail="Timesheet not found")
     
-    if current_user.role.role_name == "employee":
+    if current_user.role_name == "employee":
         raise HTTPException(status_code=403, detail="Only managers and admins can approve")
     
     if approval.action == "approved":
@@ -206,13 +209,13 @@ def approve_timesheet(timesheet_id: str, approval: TimesheetApprove, db: Session
     else:
         timesheet.status = "rejected"
     
-    timesheet.approved_by = current_user.employee_id
+    timesheet.approved_by = current_user.user_id
     timesheet.approved_at = datetime.utcnow()
     
     workflow = ApprovalWorkflow(
         request_type="timesheet",
         request_id=timesheet_id,
-        approver_id=current_user.employee_id,
+        approver_id=current_user.user_id,
         action=approval.action,
         remarks=approval.remarks
     )
