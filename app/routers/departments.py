@@ -5,11 +5,14 @@ from app.database import get_db
 from app.models import Department, Employee
 from app.schemas import Department as DepartmentSchema, DepartmentBase
 from app.security import get_current_user
+# Change 1: Import UserToken and token dependencies
+from app.schemas import UserToken
+from app.security import get_current_user_token, is_admin
 
 router = APIRouter()
 
-def check_admin(current_user: Employee = Depends(get_current_user)):
-    if current_user.role.role_name != "admin":
+def check_admin(current_user: UserToken  = Depends(get_current_user_token)):# Changed to UserToken
+    if current_user.role_name != "admin":
         raise HTTPException(status_code=403, detail="Only admin can perform this action")
     return current_user
 
@@ -19,7 +22,7 @@ def get_all_departments(db: Session = Depends(get_db), current_user: Employee = 
     return departments
 
 @router.post("/", response_model=DepartmentSchema)
-def create_department(department: DepartmentBase, db: Session = Depends(get_db), admin: Employee = Depends(check_admin)):
+def create_department(department: DepartmentBase, db: Session = Depends(get_db), admin: UserToken  = Depends(check_admin)):
     db_department = db.query(Department).filter(Department.department_name == department.department_name).first()
     if db_department:
         raise HTTPException(status_code=400, detail="Department already exists")

@@ -3,13 +3,13 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models import Employee
-from app.schemas import Employee as EmployeeSchema, EmployeeCreate, EmployeeUpdate
-from app.security import get_current_user, get_password_hash
+from app.schemas import Employee as EmployeeSchema, EmployeeCreate, EmployeeUpdate, UserToken
+from app.security import get_current_user, get_current_user_token, get_password_hash
 
 router = APIRouter()
 
-def check_admin(current_user: Employee = Depends(get_current_user)):
-    if current_user.role.role_name != "admin":
+def check_admin(current_user: UserToken = Depends(get_current_user_token)):
+    if current_user.role_name != "admin":
         raise HTTPException(status_code=403, detail="Only admin can perform this action")
     return current_user
 
@@ -26,7 +26,7 @@ def get_employee(employee_id: str, db: Session = Depends(get_db), current_user: 
     return employee
 
 @router.post("/", response_model=EmployeeSchema)
-def create_employee(employee: EmployeeCreate, db: Session = Depends(get_db), admin: Employee = Depends(check_admin)):
+def create_employee(employee: EmployeeCreate, db: Session = Depends(get_db), admin: UserToken = Depends(check_admin)):# Changed to UserToken
     db_employee = db.query(Employee).filter(Employee.email == employee.email).first()
     if db_employee:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -49,7 +49,7 @@ def create_employee(employee: EmployeeCreate, db: Session = Depends(get_db), adm
     return db_employee
 
 @router.put("/{employee_id}", response_model=EmployeeSchema)
-def update_employee(employee_id: str, employee: EmployeeUpdate, db: Session = Depends(get_db), admin: Employee = Depends(check_admin)):
+def update_employee(employee_id: str, employee: EmployeeUpdate, db: Session = Depends(get_db), admin:UserToken  = Depends(check_admin)):# Changed to UserToken
     db_employee = db.query(Employee).filter(Employee.employee_id == employee_id).first()
     if not db_employee:
         raise HTTPException(status_code=404, detail="Employee not found")
@@ -72,7 +72,7 @@ def update_employee(employee_id: str, employee: EmployeeUpdate, db: Session = De
     return db_employee
 
 @router.delete("/{employee_id}", status_code=204)
-def delete_employee(employee_id: str, db: Session = Depends(get_db), admin: Employee = Depends(check_admin)):
+def delete_employee(employee_id: str, db: Session = Depends(get_db), admin: UserToken = Depends(check_admin)):# Changed to UserToken
     db_employee = db.query(Employee).filter(Employee.employee_id == employee_id).first()
     if not db_employee:
         raise HTTPException(status_code=404, detail="Employee not found")
