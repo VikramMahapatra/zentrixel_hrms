@@ -61,7 +61,7 @@ def login(email: str, password: str, db: Session = Depends(get_db)):
     # Create token data
     token_data = {
         "sub": employee.email,
-        "user_id": employee.employee_id,
+        "employee_id": employee.employee_id,
         "email": employee.email,
         "role_id": employee.role_id,
         "role_name": employee.role.role_name
