@@ -187,7 +187,7 @@ class TokenResponse(BaseModel):
 # Add this to your existing schemas.py file
 
 class UserToken(BaseModel):
-    user_id: str  # This is employee_id
+    employee_id: str  # This is employee_id
     email: str
     role_id: int
     role_name: str

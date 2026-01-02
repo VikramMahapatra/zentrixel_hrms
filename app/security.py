@@ -36,7 +36,7 @@ def create_user_token(employee, role_name: str):
     """Create JWT token with user info"""
     token_data = {
         "sub": employee.email,
-        "user_id": employee.employee_id,
+        "employee_id": employee.employee_id,
         "email": employee.email,
         "role_id": employee.role_id,
         "role_name": role_name
@@ -68,7 +68,7 @@ async def get_current_user_token(
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         # Create UserToken from payload
         user_token = UserToken(
-            user_id=payload.get("user_id"),
+            employee_id=payload.get("employee_id"),
             email=payload.get("email"),
             role_id=payload.get("role_id"),
             role_name=payload.get("role_name")

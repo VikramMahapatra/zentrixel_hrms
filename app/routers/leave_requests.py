@@ -20,7 +20,7 @@ def get_leave_requests(db: Session = Depends(get_db), current_user: UserToken = 
     if current_user.role_name == "admin":
         requests = db.query(LeaveRequest).all()
     else:
-        requests = db.query(LeaveRequest).filter(LeaveRequest.employee_id == current_user.user_id).all()# FIX: Use user_id instead of employee_id (UserToken has user_id)
+        requests = db.query(LeaveRequest).filter(LeaveRequest.employee_id == current_user.employee_id).all()# FIX: Use user_id instead of employee_id (UserToken has user_id)
     return requests
 
 @router.post("/", response_model=LeaveRequestSchema)
@@ -93,7 +93,7 @@ def approve_leave_request(leave_id: str, approval: LeaveRequestApprove, db: Sess
             current_date += timedelta(days=1)
     else:
         leave_request.status = "rejected"
-        leave_request.approved_by = current_user.user_id # FIX: Use user_id instead of employee_id (UserToken has user_id)
+        leave_request.approved_by = current_user.employee_id # FIX: Use user_id instead of employee_id (UserToken has user_id)
         leave_request.approved_at = datetime.utcnow()
     
     db.commit()
