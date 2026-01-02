@@ -6,6 +6,8 @@ from app.database import get_db
 from app.models import Attendance, WeeklyAttendanceSummary, Employee
 from app.schemas import Attendance as AttendanceSchema, AttendanceCreate
 from app.security import get_current_user
+from app.schemas import UserToken
+from app.security import get_current_user_token, is_admin, is_manager_or_admin
 
 router = APIRouter()
 
@@ -61,16 +63,16 @@ def check_out(db: Session = Depends(get_db), current_user: Employee = Depends(ge
     return attendance
 
 @router.get("/daily/{emp_id}", response_model=List[AttendanceSchema])
-def get_daily_attendance(emp_id: str, db: Session = Depends(get_db), current_user: Employee = Depends(get_current_user)):
-    if current_user.role.role_name not in ["admin", "manager"] and current_user.employee_id != emp_id:
+def get_daily_attendance(emp_id: str, db: Session = Depends(get_db), current_user: UserToken = Depends(get_current_user_token)): # Changed to UserToken
+    if current_user.role_name not in ["admin", "manager"] and current_user.employee_id != emp_id:
         raise HTTPException(status_code=403, detail="Unauthorized")
     
     attendance = db.query(Attendance).filter(Attendance.employee_id == emp_id).order_by(Attendance.date.desc()).all()
     return attendance
 
 @router.post("/weekly-summary")
-def generate_weekly_summary(db: Session = Depends(get_db), current_user: Employee = Depends(get_current_user)):
-    if current_user.role.role_name != "admin":
+def generate_weekly_summary(db: Session = Depends(get_db), current_user: UserToken = Depends(get_current_user_token)): # Changed to UserToken
+    if current_user.role_name != "admin":
         raise HTTPException(status_code=403, detail="Only admin can generate summaries")
     
     today = date.today()

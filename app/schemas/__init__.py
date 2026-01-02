@@ -184,5 +184,17 @@ class TokenResponse(BaseModel):
 	token_type: str = "bearer"
 	user: Employee
 
+# Add this to your existing schemas.py file
+
+class UserToken(BaseModel):
+    user_id: str  # This is employee_id
+    email: str
+    role_id: int
+    role_name: str
+    
+    class Config:
+        from_attributes = True
+
+
 # Analytics schemas
 from .analytics_schema import *
