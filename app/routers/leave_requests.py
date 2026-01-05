@@ -17,12 +17,31 @@ def calculate_days(start_date, end_date):
 
 @router.get("/", response_model=List[LeaveRequestSchema])
 def get_leave_requests(db: Session = Depends(get_db), current_user: UserToken = Depends(get_current_user_token)):  # Changed to UserToken
-    if current_user.role_name == "admin":
-        requests = db.query(LeaveRequest).all()
-    else:
-        requests = db.query(LeaveRequest).filter(LeaveRequest.employee_id == current_user.employee_id).all()# FIX: Use user_id instead of employee_id (UserToken has user_id)
-    return requests
-
+    # Build query
+    query = (
+        db.query(LeaveRequest, Employee.first_name, Employee.last_name, LeaveType.leave_name)
+        .join(Employee, LeaveRequest.employee_id == Employee.employee_id)
+        .join(LeaveType, LeaveRequest.leave_type_id == LeaveType.leave_type_id)
+    )
+    
+    # Apply filters
+    if current_user.role_name != "admin":
+        query = query.filter(LeaveRequest.employee_id == current_user.employee_id)
+    
+    # Get results
+    results = query.order_by(LeaveRequest.created_at.desc()).all()
+    
+    # Return transformed results
+    return [
+        LeaveRequestSchema.model_validate(
+            {
+                **lr.__dict__,
+                "employee_name": f"{first_name} {last_name}",
+                "leave_name": leave_name
+            }
+        )
+        for lr, first_name, last_name, leave_name in results
+    ]
 @router.post("/", response_model=LeaveRequestSchema)
 def create_leave_request(request: LeaveRequestCreate, db: Session = Depends(get_db), current_user: Employee = Depends(get_current_user)):
     total_days = calculate_days(request.start_date, request.end_date)

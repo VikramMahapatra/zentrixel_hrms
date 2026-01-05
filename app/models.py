@@ -1,8 +1,10 @@
-from sqlalchemy import Column, String, Integer, Text, Date, DateTime, ForeignKey, Enum, Float, Boolean
+from sqlalchemy import Column, String, Integer, Text, Date, DateTime, ForeignKey, Enum, Float, Boolean, text
 from sqlalchemy.orm import relationship
 from app.database import Base, generate_uuid
 from datetime import datetime
 import enum
+from sqlalchemy import Sequence
+from sqlalchemy import event
 
 class Role(Base):
     __tablename__ = "roles"
@@ -16,10 +18,11 @@ class Department(Base):
     department_name = Column(String, unique=True, nullable=False)
     employees = relationship("Employee", back_populates="department")
 
+
 class Employee(Base):
     __tablename__ = "employees"
     employee_id = Column(String, primary_key=True, index=True, default=generate_uuid)
-    employee_code = Column(String, unique=True, nullable=False)
+    employee_code :str = Column(String(64), unique=True, nullable=False)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False, index=True)
@@ -39,6 +42,23 @@ class Employee(Base):
     attendance = relationship("Attendance", back_populates="employee")
     timesheets = relationship("Timesheet", foreign_keys="Timesheet.employee_id", back_populates="employee")
     approved_leaves = relationship("LeaveRequest", foreign_keys="LeaveRequest.approved_by", back_populates="approver")
+
+@event.listens_for(Employee, "before_insert")
+def generate_employee_code(mapper, connection, target):
+    if target.employee_code:
+        return
+
+    result = connection.execute(
+        text("SELECT employee_code FROM employees ORDER BY created_at DESC LIMIT 1")
+    ).fetchone()
+
+    if result and result[0]:
+        last_num = int(result[0].replace("EMP", ""))
+        next_num = last_num + 1
+    else:
+        next_num = 1001
+
+    target.employee_code = f"EMP{next_num}"
 
 class LeaveType(Base):
     __tablename__ = "leave_types"

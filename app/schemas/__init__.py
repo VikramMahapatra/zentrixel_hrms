@@ -25,7 +25,6 @@ class Department(DepartmentBase):
 
 # Employee Schemas
 class EmployeeBase(BaseModel):
-	employee_code: str
 	first_name: str
 	last_name: str
 	email: EmailStr
@@ -46,9 +45,13 @@ class EmployeeUpdate(BaseModel):
 	status: Optional[str] = None
 
 class Employee(EmployeeBase):
+	employee_code: str
 	employee_id: str
 	status: str
 	created_at: datetime
+	role_name: Optional[str] = None
+	department_name: Optional[str] = None
+
 	class Config:
 		from_attributes = True
 
@@ -87,6 +90,8 @@ class LeaveRequest(LeaveRequestBase):
 	created_at: datetime
 	submitted_at: Optional[datetime] = None
 	approved_at: Optional[datetime] = None
+	employee_name: Optional[str] = None
+	leave_name: Optional[str] = None
 	class Config:
 		from_attributes = True
 
@@ -104,6 +109,7 @@ class Attendance(AttendanceBase):
 	attendance_id: str
 	employee_id: str
 	total_hours: Optional[float] = None
+	employee_name: Optional[str] = None
 	class Config:
 		from_attributes = True
 
