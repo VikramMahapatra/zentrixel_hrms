@@ -67,8 +67,25 @@ def get_daily_attendance(emp_id: str, db: Session = Depends(get_db), current_use
     if current_user.role_name not in ["admin", "manager"] and current_user.employee_id != emp_id:
         raise HTTPException(status_code=403, detail="Unauthorized")
     
-    attendance = db.query(Attendance).filter(Attendance.employee_id == emp_id).order_by(Attendance.date.desc()).all()
-    return attendance
+     # Build query
+    results = (
+        db.query(Attendance, Employee.first_name, Employee.last_name)
+        .join(Employee, Attendance.employee_id == Employee.employee_id)
+        .filter(Attendance.employee_id == emp_id)
+        .order_by(Attendance.date.desc())
+        .all()
+    )
+    
+    # Return transformed results
+    return [
+        AttendanceSchema.model_validate(
+            {
+                **attendance.__dict__,
+                "employee_name": f"{first_name} {last_name}"
+            }
+        )
+        for attendance, first_name, last_name in results
+    ]
 
 @router.post("/weekly-summary")
 def generate_weekly_summary(db: Session = Depends(get_db), current_user: UserToken = Depends(get_current_user_token)): # Changed to UserToken
@@ -107,7 +124,20 @@ def generate_weekly_summary(db: Session = Depends(get_db), current_user: UserTok
 
 @router.get("/weekly-summary/{emp_id}")
 def get_weekly_summary(emp_id: str, db: Session = Depends(get_db), current_user: Employee = Depends(get_current_user)):
-    summaries = db.query(WeeklyAttendanceSummary).filter(
-        WeeklyAttendanceSummary.employee_id == emp_id
-    ).order_by(WeeklyAttendanceSummary.week_start_date.desc()).all()
-    return summaries
+    # Build query
+    results = (
+        db.query(WeeklyAttendanceSummary, Employee.first_name, Employee.last_name)
+        .join(Employee, WeeklyAttendanceSummary.employee_id == Employee.employee_id)
+        .filter(WeeklyAttendanceSummary.employee_id == emp_id)
+        .order_by(WeeklyAttendanceSummary.week_start_date.desc())
+        .all()
+    )
+    
+    # Return transformed results
+    return [
+        {
+            **summary.__dict__,
+            "employee_name": f"{first_name} {last_name}"
+        }
+        for summary, first_name, last_name in results
+    ]

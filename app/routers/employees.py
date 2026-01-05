@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
-from app.models import Employee
+from app.models import Department, Employee, Role
 from app.schemas import Employee as EmployeeSchema, EmployeeCreate, EmployeeUpdate, UserToken
 from app.security import get_current_user, get_current_user_token, get_password_hash
 
@@ -15,8 +15,30 @@ def check_admin(current_user: UserToken = Depends(get_current_user_token)):
 
 @router.get("/", response_model=List[EmployeeSchema])
 def get_all_employees(db: Session = Depends(get_db), current_user: Employee = Depends(get_current_user)):
-    employees = db.query(Employee).all()
-    return employees
+    # Simple query with joins
+    employees = (
+        db.query(
+            Employee,
+            Role.role_name,
+            Department.department_name
+        )
+        .join(Role, Employee.role_id == Role.role_id)
+        .join(Department, Employee.department_id == Department.department_id)
+        .order_by(Employee.created_at.desc())
+        .all()
+    )
+    
+    # Transform results
+    return [
+        EmployeeSchema.model_validate(
+            {
+                **emp.__dict__,
+                "role_name": role_name,
+                "department_name": department_name
+            }
+        )
+        for emp, role_name, department_name in employees
+    ]
 
 @router.get("/{employee_id}", response_model=EmployeeSchema)
 def get_employee(employee_id: str, db: Session = Depends(get_db), current_user: Employee = Depends(get_current_user)):
@@ -33,7 +55,6 @@ def create_employee(employee: EmployeeCreate, db: Session = Depends(get_db), adm
     
     hashed_password = get_password_hash(employee.password)
     db_employee = Employee(
-        employee_code=employee.employee_code,
         first_name=employee.first_name,
         last_name=employee.last_name,
         email=employee.email,
