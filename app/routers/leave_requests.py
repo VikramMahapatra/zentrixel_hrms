@@ -61,11 +61,11 @@ def create_leave_request(request: LeaveRequestCreate, db: Session = Depends(get_
 # FIX THIS FUNCTION - It has current_user.role.role_name
 
 @router.put("/{leave_id}/submit")
-def submit_leave_request(leave_id: str, db: Session = Depends(get_db), current_user: Employee = Depends(get_current_user)):
+def submit_leave_request(leave_id: str, db: Session = Depends(get_db), current_user: UserToken = Depends(get_current_user_token)):
     leave_request = db.query(LeaveRequest).filter(LeaveRequest.leave_id == leave_id).first()
     if not leave_request:
         raise HTTPException(status_code=404, detail="Leave request not found")
-    if leave_request.employee_id != current_user.employee_id and current_user.role.role_name != "admin":
+    if leave_request.employee_id != current_user.employee_id and current_user.role_name != "admin":
         raise HTTPException(status_code=403, detail="Unauthorized")
     
     leave_request.status = "submitted"
