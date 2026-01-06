@@ -113,6 +113,21 @@ class Attendance(AttendanceBase):
 	class Config:
 		from_attributes = True
 
+# Add this to your schemas.py
+class ApprovalWorkflowSchema(BaseModel):
+    workflow_id: str
+    request_type: str
+    request_id: str
+    approver_id: str
+    action: str
+    remarks: Optional[str] = None
+    action_at: datetime
+    approver_name: Optional[str] = None
+    approver_role: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 # Project Schemas
 class ProjectBase(BaseModel):
 	project_name: str
@@ -127,7 +142,7 @@ class Project(ProjectBase):
 	class Config:
 		from_attributes = True
 
-# Task Schemas
+# Task Schemasa
 class TaskBase(BaseModel):
 	project_id: str
 	task_name: str

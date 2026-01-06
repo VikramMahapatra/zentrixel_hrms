@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 from app.database import get_db
-from app.models import LeaveRequest, Employee, EmployeeLeaveBalance, LeaveType, Attendance
+from app.models import ApprovalWorkflow, LeaveRequest, Employee, EmployeeLeaveBalance, LeaveType, Attendance
 from app.schemas import LeaveRequest as LeaveRequestSchema, LeaveRequestCreate, LeaveRequestApprove
 from app.security import get_current_user
 # Change 1: Import UserToken and token dependencies
@@ -70,6 +70,18 @@ def submit_leave_request(leave_id: str, db: Session = Depends(get_db), current_u
     
     leave_request.status = "submitted"
     leave_request.submitted_at = datetime.utcnow()
+
+      # ========== ADD WORKFLOW LOG ==========
+    # Create workflow log for submission
+    workflow_record = ApprovalWorkflow(
+        request_type="leave_request",
+        request_id=leave_id,
+        approver_id=leave_request.employee_id,  # Submitted by employee
+        action="submitted",  # Action is "submitted"
+        remarks=f"Leave request submitted by employee"
+    )
+    db.add(workflow_record)
+    # ========== END ADDITION ==========
     db.commit()
     db.refresh(leave_request)
     return leave_request
@@ -84,6 +96,18 @@ def approve_leave_request(leave_id: str, approval: LeaveRequestApprove, db: Sess
     leave_request = db.query(LeaveRequest).filter(LeaveRequest.leave_id == leave_id).first()
     if not leave_request:
         raise HTTPException(status_code=404, detail="Leave request not found")
+    
+     # ========== ADD WORKFLOW LOG ==========
+    # Create workflow log for approval/rejection
+    workflow_record = ApprovalWorkflow(
+        request_type="leave_request",
+        request_id=leave_id,
+        approver_id=current_user.employee_id,  # Approved by manager/admin
+        action=approval.action,  # "approved" or "rejected"
+        remarks=approval.remarks  # Manager's comments
+    )
+    db.add(workflow_record)
+    # ========== END ADDITION ==========
 
     
     
