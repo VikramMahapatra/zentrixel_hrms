@@ -19,9 +19,20 @@ def check_manager_or_admin(current_user: UserToken = Depends(get_current_user_to
     return current_user
 
 @router.get("/", response_model=List[ProjectSchema])
-def get_all_projects(db: Session = Depends(get_db), current_user: Employee = Depends(get_current_user)):
-    projects = db.query(Project).all()
+def get_all_projects(db: Session = Depends(get_db), current_user: UserToken = Depends(get_current_user_token)):
+    if current_user.role_name == "admin":
+        # Admin sees all projects
+        projects = db.query(Project).all()
+    else:
+        # Non-admin (employee/manager) sees only assigned projects
+        projects = (
+            db.query(Project)
+            .join(EmployeeProject, EmployeeProject.project_id == Project.project_id)
+            .filter(EmployeeProject.employee_id == current_user.employee_id)
+            .all()
+        )
     return projects
+
 
 @router.post("/", response_model=ProjectSchema)
 def create_project(project: ProjectBase, db: Session = Depends(get_db), manager: UserToken = Depends(check_manager_or_admin)):
