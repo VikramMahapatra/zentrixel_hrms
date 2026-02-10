@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.security import get_current_user, is_admin, is_manager_or_admin
+from app.security import get_current_user, has_role
+
 from app.models import Employee
 from app.services.analytics_service import AnalyticsService
 from app.schemas.analytics_schema import (
@@ -88,7 +90,9 @@ def get_personal_timesheet_analytics(
 @router.get("/team/overview", response_model=ManagerTeamAnalyticsResponse, tags=["Analytics - Manager"])
 def get_team_overview(
     db: Session = Depends(get_db),
-    current_user: Employee = Depends(is_manager_or_admin)
+    user = Depends(has_role(["manager", "admin"])),
+    current_user: Employee = Depends(get_current_user)
+
 ):
     """Get consolidated analytics for all team members managed by this manager"""
     result = AnalyticsService.get_manager_team_analytics(db, current_user.employee_id)
@@ -98,7 +102,8 @@ def get_team_overview(
 def get_team_attendance_analytics(
     days: int = Query(30, ge=1, le=365),
     db: Session = Depends(get_db),
-    current_user: Employee = Depends(is_manager_or_admin)
+    user = Depends(has_role(["manager", "admin"])),
+    current_user: Employee = Depends(get_current_user)
 ):
     """Get attendance analytics for all managed team members"""
     result = AnalyticsService.get_attendance_analytics(db, department_id=current_user.department_id, days=days)
@@ -122,7 +127,8 @@ def get_team_attendance_analytics(
 @router.get("/team/leaves", response_model=List[LeaveAnalyticsResponse], tags=["Analytics - Manager"])
 def get_team_leave_analytics(
     db: Session = Depends(get_db),
-    current_user: Employee = Depends(is_manager_or_admin)
+    user = Depends(has_role(["manager", "admin"])),
+    current_user: Employee = Depends(get_current_user)
 ):
     """Get leave analytics for all managed team members"""
     result = AnalyticsService.get_leave_analytics(db, department_id=current_user.department_id)
@@ -144,7 +150,8 @@ def get_team_leave_analytics(
 def get_team_timesheet_analytics(
     days: int = Query(30, ge=1, le=365),
     db: Session = Depends(get_db),
-    current_user: Employee = Depends(is_manager_or_admin)
+    user = Depends(has_role(["manager", "admin"])),
+    current_user: Employee = Depends(get_current_user)
 ):
     """Get timesheet analytics for all managed team members"""
     result = AnalyticsService.get_timesheet_analytics(db, department_id=current_user.department_id, days=days)
@@ -168,7 +175,8 @@ def get_team_timesheet_analytics(
 @router.get("/admin/leave-summary", response_model=List[LeaveAnalyticsResponse], tags=["Analytics - Admin"])
 def get_admin_leave_summary(
     db: Session = Depends(get_db),
-    current_user: Employee = Depends(is_admin)
+    user = Depends(has_role(["admin"])),
+    current_user: Employee = Depends(get_current_user)
 ):
     """[ADMIN] Get leave analytics for all employees"""
     result = AnalyticsService.get_leave_analytics(db)
@@ -189,7 +197,8 @@ def get_admin_leave_summary(
 @router.get("/admin/leave-balance", response_model=List[LeaveBalanceResponse], tags=["Analytics - Admin"])
 def get_admin_leave_balance(
     db: Session = Depends(get_db),
-    current_user: Employee = Depends(is_admin)
+    user = Depends(has_role(["admin"])),
+    current_user: Employee = Depends(get_current_user)
 ):
     """[ADMIN] Get detailed leave balance for all employees by type"""
     result = AnalyticsService.get_leave_balance_analytics(db)
@@ -213,7 +222,8 @@ def get_admin_leave_balance(
 def get_admin_attendance_summary(
     days: int = Query(30, ge=1, le=365),
     db: Session = Depends(get_db),
-    current_user: Employee = Depends(is_admin)
+    user = Depends(has_role(["admin"])),
+    current_user: Employee = Depends(get_current_user)
 ):
     """[ADMIN] Get attendance analytics for all employees"""
     result = AnalyticsService.get_attendance_analytics(db, days=days)
@@ -238,7 +248,8 @@ def get_admin_attendance_summary(
 def get_admin_timesheet_summary(
     days: int = Query(30, ge=1, le=365),
     db: Session = Depends(get_db),
-    current_user: Employee = Depends(is_admin)
+    user = Depends(has_role(["admin"])),
+    current_user: Employee = Depends(get_current_user)
 ):
     """[ADMIN] Get timesheet analytics for all employees"""
     result = AnalyticsService.get_timesheet_analytics(db, days=days)
@@ -261,7 +272,8 @@ def get_admin_timesheet_summary(
 @router.get("/admin/project-productivity", response_model=List[ProjectProductivityResponse], tags=["Analytics - Admin"])
 def get_admin_project_productivity(
     db: Session = Depends(get_db),
-    current_user: Employee = Depends(is_admin)
+    user = Depends(has_role(["admin"])),
+    current_user: Employee = Depends(get_current_user)
 ):
     """[ADMIN] Get project-wise productivity metrics"""
     result = AnalyticsService.get_project_productivity_analytics(db)
@@ -281,7 +293,8 @@ def get_admin_project_productivity(
 @router.get("/admin/department-summary", response_model=List[DepartmentAnalyticsResponse], tags=["Analytics - Admin"])
 def get_admin_department_summary(
     db: Session = Depends(get_db),
-    current_user: Employee = Depends(is_admin)
+    user = Depends(has_role(["admin"])),
+    current_user: Employee = Depends(get_current_user)
 ):
     """[ADMIN] Get department-wise consolidated analytics"""
     result = AnalyticsService.get_department_analytics(db)
@@ -300,7 +313,8 @@ def get_admin_department_summary(
 @router.get("/admin/compliance", response_model=List[ComplianceResponse], tags=["Analytics - Admin"])
 def get_admin_compliance_metrics(
     db: Session = Depends(get_db),
-    current_user: Employee = Depends(is_admin)
+    user = Depends(has_role(["admin"])),
+    current_user: Employee = Depends(get_current_user)
 ):
     """[ADMIN] Get compliance metrics - pending approvals, overdue items"""
     result = AnalyticsService.get_compliance_analytics(db)

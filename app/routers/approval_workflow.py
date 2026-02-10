@@ -7,14 +7,12 @@ from app.security import get_current_user
 # Change 1: Import UserToken and get_current_user_token
 from app.schemas import ApprovalWorkflowSchema, UserToken
 from app.security import  get_current_user_token, is_admin
+from app.security import has_role
 
 router = APIRouter()
 
 @router.get("/", response_model=List[ApprovalWorkflowSchema])
-def get_approval_workflows(db: Session = Depends(get_db), current_user: UserToken= Depends(get_current_user_token)):
-    if current_user.role_name != "admin":
-        raise HTTPException(status_code=403, detail="Only admin can view all workflows")
-    
+def get_approval_workflows(db: Session = Depends(get_db),  user = Depends(has_role(["admin"]))):
     workflows = db.query(ApprovalWorkflow).all()
     
     # Get approver names for each workflow
@@ -44,14 +42,17 @@ def get_pending_approvals(db: Session = Depends(get_db), current_user: Employee 
     return pending
 
 @router.get("/{leave_id}/workflow-history")
-def get_leave_workflow_history(leave_id: str, db: Session = Depends(get_db), current_user: UserToken = Depends(get_current_user_token)):
+def get_leave_workflow_history(
+    leave_id: str, db: Session = Depends(get_db),
+    user = Depends(has_role(["admin", "manager", "employee"])),
+    current_user: Employee = Depends(get_current_user)):
     """Get workflow history for a specific leave request"""
     
     leave_request = db.query(LeaveRequest).filter(LeaveRequest.leave_id == leave_id).first()
     if not leave_request:
         raise HTTPException(status_code=404, detail="Leave request not found")
     
-    if leave_request.employee_id != current_user.employee_id and current_user.role_name != "admin":
+    if (leave_request.employee_id != current_user.employee_id and "admin" not in user.roles):
         raise HTTPException(status_code=403, detail="Unauthorized")
     
     workflow_logs = db.query(ApprovalWorkflow).filter(

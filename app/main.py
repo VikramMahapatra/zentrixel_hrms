@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import engine, Base, init_db
-from app.routers import auth, employees, departments, roles, leave_types, leave_requests, attendance, projects, tasks, timesheets, approval_workflow, analytics
+from app.routers import auth, employees, departments, roles, leave_types, leave_requests, attendance, projects, tasks, timesheets, approval_workflow, analytics,role_policies
 
 # Initialize database on startup
 def setup_db():
@@ -43,6 +43,7 @@ app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
 app.include_router(timesheets.router, prefix="/api/timesheets", tags=["Timesheets"])
 app.include_router(approval_workflow.router, prefix="/api/approvals", tags=["Approvals"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
+app.include_router(role_policies.router, prefix="/api/role-policies", tags=["Role Policies"])
 
 @app.get("/")
 def read_root():
