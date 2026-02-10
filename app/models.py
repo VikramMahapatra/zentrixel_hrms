@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Text, Date, DateTime, ForeignKey, Enum, Float, Boolean, text
+from sqlalchemy import Column, String, Integer, Text, Date, DateTime, ForeignKey, Enum, Float, Boolean, text,UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.database import Base, generate_uuid
 from datetime import datetime
@@ -17,6 +17,19 @@ class Department(Base):
     department_id = Column(Integer, primary_key=True, index=True)
     department_name = Column(String, unique=True, nullable=False)
     employees = relationship("Employee", back_populates="department")
+
+class RolePolicy(Base):
+    __tablename__ = "role_policies"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    role_id = Column(Integer, ForeignKey("roles.role_id", ondelete="CASCADE"), nullable=False)
+
+    resource = Column(String(50), nullable=False)   # employees, leave, attendance
+    action = Column(String(30), nullable=False)     # view, create, delete, approve, export
+
+    __table_args__ = (
+        UniqueConstraint("role_id", "resource", "action", name="uq_role_resource_action"),
+    )
 
 
 class Employee(Base):
@@ -42,6 +55,7 @@ class Employee(Base):
     attendance = relationship("Attendance", back_populates="employee")
     timesheets = relationship("Timesheet", foreign_keys="Timesheet.employee_id", back_populates="employee")
     approved_leaves = relationship("LeaveRequest", foreign_keys="LeaveRequest.approved_by", back_populates="approver")
+    task_assignments = relationship("TaskAssignment", back_populates="employee")
 
 @event.listens_for(Employee, "before_insert")
 def generate_employee_code(mapper, connection, target):
@@ -86,6 +100,18 @@ class EmployeeLeaveBalance(Base):
     
     employee = relationship("Employee", back_populates="leave_balance")
     leave_type = relationship("LeaveType", back_populates="leave_balances")
+
+
+class EmployeeRole(Base):
+    __tablename__ = "employee_roles"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=False)
+    role_id = Column(Integer, ForeignKey("roles.role_id"), nullable=False)
+
+    employee = relationship("Employee", backref="employee_roles")
+    role = relationship("Role")
+
 
 class LeaveRequest(Base):
     __tablename__ = "leave_requests"
@@ -150,6 +176,19 @@ class Task(Base):
     
     project = relationship("Project", back_populates="tasks")
     timesheets = relationship("Timesheet", back_populates="task")
+    # ADD THIS LINE:
+    assignments = relationship("TaskAssignment", back_populates="task")
+
+class TaskAssignment(Base):
+    __tablename__ = "task_assignments"
+    assignment_id = Column(String, primary_key=True, index=True, default=generate_uuid)
+    task_id = Column(String, ForeignKey("tasks.task_id"), nullable=False)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=False)
+    assigned_date = Column(DateTime, default=datetime.utcnow)
+    deadline = Column(Date, nullable=True)
+    
+    task = relationship("Task", back_populates="assignments")
+    employee = relationship("Employee", back_populates="task_assignments")
 
 class EmployeeProject(Base):
     __tablename__ = "employee_projects"

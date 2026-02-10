@@ -152,6 +152,33 @@ class Task(TaskBase):
 	task_id: str
 	class Config:
 		from_attributes = True
+# Add these at the end of the file, before the closing
+
+class TaskAssignmentBase(BaseModel):
+    task_id: str
+    employee_id: str
+    deadline: Optional[date] = None
+
+class TaskAssignmentCreate(TaskAssignmentBase):
+    pass
+
+class TaskAssignmentSchema(TaskAssignmentBase):
+    assignment_id: str
+    assigned_date: datetime
+    
+    class Config:
+       from_attributes = True
+
+# For task response with assignments
+class TaskWithAssignments(Task):
+    assignments: List[TaskAssignmentSchema] = []
+    assigned_employee_names: List[str] = []  # Names of assigned employees		assigned_employee_names: List[str] = []  # Names of assigned employees
+    project_name: Optional[str] = None  # Project name for display
+    employee_deadline: Optional[date] = None  # Deadline for current user
+    is_assigned_to_me: bool = False
+
+    class Config:
+        from_attributes = True
 
 # Timesheet Schemas
 class TimesheetBase(BaseModel):
@@ -210,11 +237,38 @@ class TokenResponse(BaseModel):
 class UserToken(BaseModel):
     employee_id: str  # This is employee_id
     email: str
-    role_id: int
-    role_name: str
+    roles: List[str]  # List of role names
+    permissions: list[str] = []
     
     class Config:
         from_attributes = True
+
+#role and Permission Schemas
+class RolePolicyBase(BaseModel):
+    role_id: int
+    resource: str
+    action: str
+
+
+class RolePolicyCreate(RolePolicyBase):
+    pass
+
+
+class RolePolicyOut(RolePolicyBase):
+    id: str
+
+    class Config:
+        from_attributes = True
+
+
+class RolePolicyRequest(BaseModel):
+    role_id: int
+    policies: List[RolePolicyCreate]
+
+
+class RolePolicyListResponse(BaseModel):
+    policies: List[RolePolicyOut]
+
 
 
 # Analytics schemas

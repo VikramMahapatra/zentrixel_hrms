@@ -5,10 +5,10 @@ from datetime import datetime
 from app.database import get_db
 from app.models import ApprovalWorkflow, LeaveRequest, Employee, EmployeeLeaveBalance, LeaveType, Attendance
 from app.schemas import LeaveRequest as LeaveRequestSchema, LeaveRequestCreate, LeaveRequestApprove
-from app.security import get_current_user
 # Change 1: Import UserToken and token dependencies
+from app.security import get_current_user, get_current_user_token, has_role
 from app.schemas import UserToken
-from app.security import get_current_user_token, is_admin
+
 
 router = APIRouter()
 
@@ -25,7 +25,7 @@ def get_leave_requests(db: Session = Depends(get_db), current_user: UserToken = 
     )
     
     # Apply filters
-    if current_user.role_name != "admin":
+    if "admin" not in current_user.roles:
         query = query.filter(LeaveRequest.employee_id == current_user.employee_id)
     
     # Get results
@@ -65,7 +65,7 @@ def submit_leave_request(leave_id: str, db: Session = Depends(get_db), current_u
     leave_request = db.query(LeaveRequest).filter(LeaveRequest.leave_id == leave_id).first()
     if not leave_request:
         raise HTTPException(status_code=404, detail="Leave request not found")
-    if leave_request.employee_id != current_user.employee_id and current_user.role_name != "admin":
+    if (leave_request.employee_id != current_user.employee_id and "admin" not in current_user.roles):
         raise HTTPException(status_code=403, detail="Unauthorized")
     
     leave_request.status = "submitted"
@@ -87,11 +87,10 @@ def submit_leave_request(leave_id: str, db: Session = Depends(get_db), current_u
     return leave_request
 
 @router.put("/{leave_id}/approve")
-def approve_leave_request(leave_id: str, approval: LeaveRequestApprove, db: Session = Depends(get_db), current_user: UserToken = Depends(get_current_user_token)):
-    if current_user.role_name not in ["admin", "manager"]:
-        raise HTTPException(status_code=403, detail="Only managers and admins can approve")
-    
-    
+def approve_leave_request(leave_id: str, approval: LeaveRequestApprove, db: Session = Depends(get_db),current_user: Employee = Depends(get_current_user), user = Depends(has_role(["manager", "admin"]))):
+    #if "manager" in user.roles:
+     #if leave_request.employee.manager_id != user.employee_id:
+        #raise HTTPException(403, "Not your team member")
     
     leave_request = db.query(LeaveRequest).filter(LeaveRequest.leave_id == leave_id).first()
     if not leave_request:
@@ -102,7 +101,7 @@ def approve_leave_request(leave_id: str, approval: LeaveRequestApprove, db: Sess
     workflow_record = ApprovalWorkflow(
         request_type="leave_request",
         request_id=leave_id,
-        approver_id=current_user.employee_id,  # Approved by manager/admin
+        approver_id=user.employee_id,  # Approved by manager/admin
         action=approval.action,  # "approved" or "rejected"
         remarks=approval.remarks  # Manager's comments
     )
